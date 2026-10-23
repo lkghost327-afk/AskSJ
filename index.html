@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AskSJ - Guardian Intercom</title>
+    <style>
+        body { background-color: #090b10; color: #c9d1d9; font-family: 'Segoe UI', sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; overflow: hidden; transition: background-color 1.5s ease; }
+        
+        /* 🔥 THE DEEP WORK OVERRIDE CSS 🔥 */
+        body.deep-work { background-color: #2b1100; color: #ffcc80; }
+        .deep-work .orb { background: radial-gradient(circle, #ff8c00, #5a2e00) !important; box-shadow: 0 0 50px rgba(255, 140, 0, 0.6) !important; }
+        .deep-work .right-panel { background: rgba(43, 17, 0, 0.8); border-color: #ff8c00; }
+        .deep-work input[type="text"] { border-color: #ff8c00; color: #ffcc80; }
+        .deep-work button { background-color: #ff8c00; color: #2b1100; }
+        #pomodoro-timer { font-size: 3rem; font-weight: bold; color: #ff8c00; display: none; margin-top: 15px; letter-spacing: 5px; }
+
+        /* MAIN UI */
+        .main-wrapper { display: flex; align-items: center; justify-content: center; gap: 60px; width: 100%; max-width: 1200px; padding: 20px; transition: opacity 0.5s; }
+        .left-panel { display: flex; flex-direction: column; align-items: center; }
+        .orb { width: 180px; height: 180px; border-radius: 50%; background: radial-gradient(circle, #2f81f7, #0d2a5a); box-shadow: 0 0 30px rgba(47, 129, 247, 0.4); transition: all 0.5s ease; margin-bottom: 20px; }
+        .IDLE { animation: breathe 4s infinite ease-in-out; }
+        .THINKING { background: radial-gradient(circle, #f778ba, #5a0d3a); box-shadow: 0 0 50px rgba(247, 120, 186, 0.6); animation: pulse 1s infinite alternate; }
+        .SPEAKING { background: radial-gradient(circle, #3fb950, #0d5a20); box-shadow: 0 0 60px rgba(63, 185, 80, 0.8); animation: wave 0.3s infinite alternate; }
+        .LISTENING { background: radial-gradient(circle, #ff4d4d, #5a0d0d); box-shadow: 0 0 50px rgba(255, 77, 77, 0.8); animation: pulse 0.5s infinite alternate; }
+        @keyframes breathe { 0%, 100% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.05); opacity: 1; } }
+        @keyframes pulse { 0% { transform: scale(0.95); } 100% { transform: scale(1.1); } }
+        @keyframes wave { 0% { transform: scale(1) scaleY(0.9); } 100% { transform: scale(1.1) scaleY(1.1); } }
+        
+        #status-text { font-size: 1.2rem; letter-spacing: 3px; color: #8b949e; margin-bottom: 20px; text-transform: uppercase; }
+        .chat-container { display: flex; gap: 10px; z-index: 10; margin-top: 20px; }
+        input[type="text"] { padding: 15px 20px; font-size: 1rem; border-radius: 30px; border: 1px solid #2f81f7; background: rgba(13, 17, 23, 0.8); color: white; width: 350px; outline: none; transition: 0.3s; }
+        button { padding: 15px 20px; border-radius: 30px; border: none; background-color: #2f81f7; color: white; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; transition: 0.3s; }
+        #mic-btn { background-color: #238636; width: 50px; }
+        button:disabled, input:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .right-panel { width: 450px; height: 350px; background: rgba(13, 17, 23, 0.7); border: 1px solid #30363d; border-radius: 20px; padding: 30px; display: none; flex-direction: column; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3); backdrop-filter: blur(10px); transition: all 1s ease; }
+        .panel-header { font-size: 0.9rem; color: #8b949e; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 2px; border-bottom: 1px solid #30363d; padding-bottom: 10px; }
+        .ai-text-output { font-size: 1.2rem; line-height: 1.6; color: #e6edf3; overflow-y: auto; }
+
+        /* 🎓 THE PRACTICE ARENA CSS 🎓 */
+        .test-arena { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; background: #040d21; z-index: 100; display: none; flex-direction: column; align-items: center; justify-content: center; }
+        .top-bar { position: absolute; top: 20px; width: 90%; display: flex; justify-content: space-between; font-size: 1.5rem; font-weight: bold; }
+        .score-board { color: #fff; background: rgba(255,255,255,0.1); padding: 10px 20px; border-radius: 20px; }
+        .timer-board { display: flex; align-items: center; gap: 15px; color: #fff; background: rgba(255,255,255,0.1); padding: 10px 20px; border-radius: 20px; }
+        .timer-board input { transform: scale(1.5); cursor: pointer; }
+        
+        .mcq-box { background: rgba(13, 17, 23, 0.9); border: 2px solid #2f81f7; border-radius: 20px; padding: 40px; width: 60%; text-align: center; box-shadow: 0 0 40px rgba(47, 129, 247, 0.2); }
+        .mcq-question { font-size: 1.8rem; margin-bottom: 30px; }
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .option-btn { background: #21262d; border: 1px solid #30363d; padding: 20px; border-radius: 10px; font-size: 1.2rem; cursor: pointer; transition: 0.2s; }
+        .option-btn:hover { background: #30363d; border-color: #8b949e; }
+        .option-btn.correct { background: #238636 !important; border-color: #2ea043 !important; }
+        .option-btn.wrong { background: #da3633 !important; border-color: #f85149 !important; }
+        
+        #exit-test-btn { margin-top: 30px; background: #da3633; padding: 10px 30px; }
+    </style>
+</head>
+<body>
+    <div class="main-wrapper" id="main-ui">
+        <div class="left-panel">
+            <div id="ai-orb" class="orb IDLE"></div>
+            <div id="status-text">SYSTEM ONLINE</div>
+            <div id="pomodoro-timer">25:00</div>
+
+            <div class="chat-container">
+                <button id="mic-btn" title="Click to Speak">🎙️</button>
+                <input type="text" id="user-input" placeholder="Type or click the mic to speak..." autocomplete="off" />
+                <button id="send-btn">Send</button>
+            </div>
+        </div>
+
+        <div class="right-panel" id="response-panel">
+            <div class="panel-header">AskSJ Output</div>
+            <div class="ai-text-output" id="ai-response-text"></div>
+        </div>
+    </div>
+
+    <div class="test-arena" id="test-arena">
+        <div class="top-bar">
+            <div class="score-board">✅ <span id="score-correct">0</span> &nbsp;|&nbsp; ❌ <span id="score-wrong">0</span></div>
+            <div class="timer-board">
+                <label><input type="checkbox" id="timer-toggle"> Optional Timer</label>
+                <span id="test-time-display">00:00</span>
+            </div>
+        </div>
+        
+        <div class="mcq-box">
+            <div class="mcq-question" id="mcq-q-text">Loading question...</div>
+            <div class="options-grid" id="mcq-options"></div>
+        </div>
+        <button id="exit-test-btn">End Practice Session</button>
+    </div>
+
+    <script>
+        const orb = document.getElementById('ai-orb');
+        const statusText = document.getElementById('status-text');
+        const inputField = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const micBtn = document.getElementById('mic-btn');
+        const responsePanel = document.getElementById('response-panel');
+        const responseText = document.getElementById('ai-response-text');
+        const pomodoroTimer = document.getElementById('pomodoro-timer');
+        const mainUI = document.getElementById('main-ui');
+        const testArena = document.getElementById('test-arena');
+
+        let mediaRecorder;
+        let audioChunks = [];
+        let isRecording = false;
+        let timerInterval;
+
+        // --- PRACTICE ARENA LOGIC ---
+        const testBank = [
+            { q: "In C, what is the size of an int pointer on a 64-bit architecture?", options: ["4 bytes", "8 bytes", "Depends on the OS", "16 bytes"], ans: 1 },
+            { q: "Which function dynamically allocates memory in C but does NOT initialize it?", options: ["calloc()", "realloc()", "malloc()", "alloc()"], ans: 2 },
+            { q: "What does NLP stand for in AI?", options: ["Neural Logic Processing", "Natural Language Processing", "Node Level Parsing", "Network Link Protocol"], ans: 1 }
+        ];
+        
+        let currentQIndex = 0;
+        let correctCount = 0;
+        let wrongCount = 0;
+        let testTimerInterval;
+        let testSeconds = 0;
+
+        function triggerTestMode() {
+            mainUI.style.display = 'none';
+            testArena.style.display = 'flex';
+            currentQIndex = 0;
+            correctCount = 0;
+            wrongCount = 0;
+            updateScoreBoard();
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            if (currentQIndex >= testBank.length) {
+                document.getElementById('mcq-q-text').innerText = "Session Complete! Great job.";
+                document.getElementById('mcq-options').innerHTML = "";
+                return;
+            }
+            
+            let qData = testBank[currentQIndex];
+            document.getElementById('mcq-q-text').innerText = qData.q;
+            
+            let optionsHTML = "";
+            qData.options.forEach((opt, idx) => {
+                optionsHTML += `<button class="option-btn" onclick="checkAnswer(${idx}, this)">${opt}</button>`;
+            });
+            document.getElementById('mcq-options').innerHTML = optionsHTML;
+        }
+
+        window.checkAnswer = function(selectedIdx, btnElement) {
+            let qData = testBank[currentQIndex];
+            let allBtns = document.querySelectorAll('.option-btn');
+            
+            // Disable all buttons so they can't click twice
+            allBtns.forEach(b => b.style.pointerEvents = 'none');
+
+            if (selectedIdx === qData.ans) {
+                btnElement.classList.add('correct');
+                correctCount++;
+            } else {
+                btnElement.classList.add('wrong');
+                allBtns[qData.ans].classList.add('correct'); // Show correct answer
+                wrongCount++;
+            }
+            
+            updateScoreBoard();
+            
+            setTimeout(() => {
+                currentQIndex++;
+                loadQuestion();
+            }, 1500);
+        };
+
+        function updateScoreBoard() {
+            document.getElementById('score-correct').innerText = correctCount;
+            document.getElementById('score-wrong').innerText = wrongCount;
+        }
+
+        document.getElementById('exit-test-btn').addEventListener('click', () => {
+            testArena.style.display = 'none';
+            mainUI.style.display = 'flex';
+            clearInterval(testTimerInterval);
+        });
+
+        // Timer Toggle Logic
+        document.getElementById('timer-toggle').addEventListener('change', (e) => {
+            if(e.target.checked) {
+                testSeconds = 0;
+                testTimerInterval = setInterval(() => {
+                    testSeconds++;
+                    let m = Math.floor(testSeconds / 60);
+                    let s = testSeconds % 60;
+                    document.getElementById('test-time-display').innerText = `${m < 10 ? '0'+m : m}:${s < 10 ? '0'+s : s}`;
+                }, 1000);
+            } else {
+                clearInterval(testTimerInterval);
+                document.getElementById('test-time-display').innerText = "00:00";
+            }
+        });
+
+        // --- DEEP WORK LOGIC ---
+        function triggerDeepWork() {
+            document.body.classList.add('deep-work');
+            pomodoroTimer.style.display = 'block';
+            let timeLeft = 25 * 60;
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                let m = Math.floor(timeLeft / 60);
+                let s = timeLeft % 60;
+                pomodoroTimer.innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+                if(timeLeft > 0) timeLeft--;
+            }, 1000);
+        }
+
+        // --- MASTER AI HANDLER ---
+        function handleAIResponse(data) {
+            if(data.success) {
+                if (data.text) inputField.value = data.text; 
+                responseText.innerText = data.answer;
+                responsePanel.style.display = 'flex';
+                
+                // Trigger overrides based on Python flag
+                if (data.action === "focus_mode") {
+                    triggerDeepWork();
+                } else if (data.action === "test_mode") {
+                    setTimeout(triggerTestMode, 2000); // Wait 2s for voice to finish intro
+                }
+            } else {
+                inputField.placeholder = "Failed to connect. Try typing.";
+            }
+        }
+
+        // ... (The rest of your Voice/Mic/Text fetch code remains exactly the same below here) ...
+        navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+            mediaRecorder = new MediaRecorder(stream);
+            mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+            mediaRecorder.onstop = async () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                audioChunks = [];
+                const formData = new FormData();
+                formData.append('audio', audioBlob, 'temp_voice.webm');
+                
+                inputField.placeholder = "Transcribing...";
+                responsePanel.style.display = 'none'; 
+                
+                let response = await fetch('/voice', { method: 'POST', body: formData });
+                let data = await response.json();
+                
+                handleAIResponse(data);
+                inputField.disabled = false; sendBtn.disabled = false; micBtn.disabled = false; micBtn.innerHTML = "🎙️";
+            };
+        });
+
+        micBtn.addEventListener('click', () => {
+            if(!isRecording) {
+                audioChunks = []; mediaRecorder.start(); isRecording = true;
+                orb.className = 'orb LISTENING'; statusText.innerText = 'LISTENING...'; statusText.style.color = '#ff4d4d';
+                inputField.placeholder = "Listening... Click mic again to stop."; micBtn.innerHTML = "⏹️"; micBtn.style.backgroundColor = "#da3633";
+            } else {
+                mediaRecorder.stop(); isRecording = false; micBtn.style.backgroundColor = "#238636";
+                inputField.disabled = true; sendBtn.disabled = true; micBtn.disabled = true;
+            }
+        });
+
+        setInterval(async () => {
+            try {
+                let response = await fetch('status.txt?' + new Date().getTime());
+                let status = (await response.text()).trim();
+                if (orb.className.includes('LISTENING')) return;
+                
+                if (document.body.classList.contains('deep-work')) {
+                    if (status === 'IDLE') { orb.className = 'orb IDLE'; statusText.innerText = 'DEEP WORK ACTIVE'; statusText.style.color = '#ff8c00'; }
+                    else if (status === 'THINKING') { orb.className = 'orb THINKING'; statusText.innerText = 'PROCESSING...'; statusText.style.color = '#ff8c00'; }
+                    else if (status === 'SPEAKING') { orb.className = 'orb SPEAKING'; statusText.innerText = 'AUDIO ACTIVE'; statusText.style.color = '#ff8c00'; }
+                    return;
+                }
+
+                if (status === 'IDLE') { orb.className = 'orb IDLE'; statusText.innerText = 'SYSTEM ONLINE'; statusText.style.color = '#8b949e'; }
+                else if (status === 'THINKING') { orb.className = 'orb THINKING'; statusText.innerText = 'PROCESSING...'; statusText.style.color = '#f778ba'; }
+                else if (status === 'SPEAKING') { orb.className = 'orb SPEAKING'; statusText.innerText = 'AUDIO ACTIVE'; statusText.style.color = '#3fb950'; }
+            } catch (error) {}
+        }, 500);
+
+        async function sendQuestion() {
+            const text = inputField.value.trim();
+            if (!text) return;
+            inputField.value = ''; inputField.disabled = true; sendBtn.disabled = true; micBtn.disabled = true; responsePanel.style.display = 'none';
+
+            let response = await fetch('/ask', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question: text }) });
+            let data = await response.json();
+
+            handleAIResponse(data);
+            inputField.disabled = false; sendBtn.disabled = false; micBtn.disabled = false; inputField.focus();
+        }
+
+        sendBtn.addEventListener('click', sendQuestion);
+        inputField.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendQuestion(); });
+    </script>
+</body>
+</html>
